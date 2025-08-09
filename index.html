@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dienstplan Editor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .shift-button.active {
+            background-color: #1d4ed8; /* bg-blue-800 */
+            color: white;
+            box-shadow: 0 0 0 2px white, 0 0 0 4px #2563eb;
+        }
+        input[type="time"]::-webkit-calendar-picker-indicator {
+            display: none;
+        }
+        #save-indicator {
+            transition: opacity 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 p-4 sm:p-6 md:p-8">
+
+    <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-6 md:p-8">
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-900">Dienstplan-Editor</h1>
+            <p class="text-gray-600 mt-2">Wähle eine Schicht aus und klicke auf die Tage. Dein Plan wird automatisch gespeichert.</p>
+        </div>
+
+        <!-- Schnellauswahl & Statistik Sektion -->
+        <div class="mb-6">
+            <div class="flex items-baseline flex-wrap justify-between">
+                <div class="flex items-baseline flex-wrap">
+                    <h3 class="text-xl font-semibold">1. Schicht auswählen</h3>
+                    <span id="summary-display" class="text-lg font-normal text-gray-600 ml-4"></span>
+                </div>
+                 <span id="save-indicator" class="text-sm text-green-600 opacity-0 font-medium">Gespeichert!</span>
+            </div>
+            <div id="shift-selector-buttons" class="space-y-3 mt-3">
+                <!-- Buttons werden hier per JS eingefügt -->
+            </div>
+        </div>
+
+        <!-- Kalender Sektion -->
+        <div class="mb-8 border-t pt-6">
+             <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold">2. Tage im Kalender zuweisen</h3>
+                <button id="clear-plan" class="text-sm text-red-600 hover:text-red-800 font-semibold">Plan für diesen Monat zurücksetzen</button>
+             </div>
+            <div class="flex items-center justify-between mb-4">
+                <button id="prev-month" class="p-2 rounded-full hover:bg-gray-200 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+                </button>
+                <h2 id="month-year" class="text-xl md:text-2xl font-semibold"></h2>
+                <button id="next-month" class="p-2 rounded-full hover:bg-gray-200 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                </button>
+            </div>
+            <div id="calendar-grid" class="grid grid-cols-7 gap-1 text-center">
+                <div class="font-medium text-gray-500 text-sm">Mo</div><div class="font-medium text-gray-500 text-sm">Di</div><div class="font-medium text-gray-500 text-sm">Mi</div><div class="font-medium text-gray-500 text-sm">Do</div><div class="font-medium text-gray-500 text-sm">Fr</div><div class="font-medium text-gray-500 text-sm">Sa</div><div class="font-medium text-gray-500 text-sm">So</div>
+            </div>
+        </div>
+
+        <!-- Übersicht & Bearbeitung -->
+        <div id="shift-selection-section" class="mb-8 border-t pt-6">
+            <h3 class="text-xl font-semibold mb-4">Zusammenfassung & Bearbeitung</h3>
+            <div id="shift-list" class="space-y-3 max-h-60 overflow-y-auto pr-2">
+                <p id="no-day-selected-msg" class="text-gray-500">Keine Tage zugewiesen.</p>
+            </div>
+        </div>
+        
+        <!-- Detaillierte Statistik Sektion -->
+        <div id="statistics-section" class="mb-8 border-t pt-6">
+            <h3 class="text-xl font-semibold mb-4">Detaillierte Statistik</h3>
+            <div id="statistics-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                <p id="no-stats-msg" class="text-gray-500 col-span-full">Noch keine Dienste für eine Statistik vorhanden.</p>
+            </div>
+        </div>
+
+        <!-- Export Sektion -->
+        <div class="border-t pt-6">
+            <button id="generate-ics" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all disabled:bg-gray-400 disabled:cursor-not-allowed">
+                ICS-Datei erstellen & herunterladen
+            </button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Minified SHIFT_CONFIG for brevity
+            const SHIFT_CONFIG = {'Notfallrettung':{'RD1':{s:'06:30',e:'16:30',c:'#ef4444'},'RD2':{s:'07:00',e:'17:00',c:'#ef4444'},'RD3w':{s:'09:00',e:'19:00',c:'#ef4444'},'RD3s':{s:'09:30',e:'19:30',c:'#ef4444'},'RD4':{s:'11:00',e:'21:00',c:'#ef4444'},'RD5':{s:'10:00',e:'20:00',c:'#ef4444'},'RDN1':{s:'19:00',e:'05:00',c:'#ef4444'},'RDN2':{s:'21:00',e:'07:00',c:'#ef4444'}},'Technische Rettung':{'TR1':{s:'06:45',e:'16:45',c:'#8b5cf6'},'TR2':{s:'10:45',e:'20:45',c:'#8b5cf6'},'TR3':{s:'08:00',e:'18:00',c:'#8b5cf6'},'TRN':{s:'20:45',e:'06:45',c:'#8b5cf6'}},'Sonderschicht':{'S':{c:'#f97316',d:!0}},'Sonstiges':{'Frei':null}};
+
+            let currentDate = new Date();
+            let selectedDays = new Map();
+            let activeShift = 'Frei';
+            let saveTimeout;
+
+            const DOM = {
+                monthYear: document.getElementById('month-year'),
+                calendarGrid: document.getElementById('calendar-grid'),
+                shiftList: document.getElementById('shift-list'),
+                noDayMsg: document.getElementById('no-day-selected-msg'),
+                generateBtn: document.getElementById('generate-ics'),
+                shiftSelectorButtons: document.getElementById('shift-selector-buttons'),
+                summaryDisplay: document.getElementById('summary-display'),
+                saveIndicator: document.getElementById('save-indicator'),
+                clearPlanBtn: document.getElementById('clear-plan'),
+                statisticsList: document.getElementById('statistics-list'),
+                noStatsMsg: document.getElementById('no-stats-msg'),
+            };
+
+            const getStorageKey = () => `dienstplan-${currentDate.getFullYear()}-${currentDate.getMonth()}`;
+
+            const showSaveIndicator = () => {
+                clearTimeout(saveTimeout);
+                DOM.saveIndicator.style.opacity = 1;
+                saveTimeout = setTimeout(() => { DOM.saveIndicator.style.opacity = 0; }, 2000);
+            };
+
+            const saveData = () => {
+                try {
+                    const dataToSave = JSON.stringify(Array.from(selectedDays.entries()));
+                    localStorage.setItem(getStorageKey(), dataToSave);
+                    showSaveIndicator();
+                } catch (e) {
+                    console.error("Speichern fehlgeschlagen:", e);
+                }
+            };
+
+            const loadData = () => {
+                try {
+                    const savedData = localStorage.getItem(getStorageKey());
+                    selectedDays = savedData ? new Map(JSON.parse(savedData)) : new Map();
+                } catch (e) {
+                    console.error("Laden fehlgeschlagen:", e);
+                    selectedDays = new Map();
+                }
+                fullRender();
+            };
+            
+            const clearData = () => {
+                if(confirm("Bist du sicher, dass du den gesamten Plan für diesen Monat löschen möchtest?")) {
+                    localStorage.removeItem(getStorageKey());
+                    selectedDays = new Map();
+                    fullRender();
+                }
+            };
+
+            const setActiveShift = (shiftName) => {
+                activeShift = shiftName;
+                document.querySelectorAll('.shift-button').forEach(btn => btn.classList.toggle('active', btn.dataset.shift === shiftName));
+            };
+
+            const createShiftButtons = () => {
+                DOM.shiftSelectorButtons.innerHTML = '';
+                for (const groupName in SHIFT_CONFIG) {
+                    const groupDiv = document.createElement('div');
+                    groupDiv.innerHTML = `<h4 class="text-md font-semibold text-gray-700 mb-2">${groupName}</h4>`;
+                    const buttonWrapper = document.createElement('div');
+                    buttonWrapper.className = 'flex flex-wrap gap-2';
+                    for (const shiftName in SHIFT_CONFIG[groupName]) {
+                        const config = SHIFT_CONFIG[groupName][shiftName];
+                        const button = document.createElement('button');
+                        button.textContent = shiftName;
+                        button.dataset.shift = shiftName;
+                        button.className = 'shift-button px-3 py-1.5 text-sm font-medium rounded-md transition-all border';
+                        button.style.borderColor = config ? config.c : '#6b7280';
+                        button.style.color = config ? config.c : '#6b7280';
+                        button.onclick = () => setActiveShift(shiftName);
+                        buttonWrapper.appendChild(button);
+                    }
+                    groupDiv.appendChild(buttonWrapper);
+                    DOM.shiftSelectorButtons.appendChild(groupDiv);
+                }
+                setActiveShift(activeShift);
+            };
+            
+            const updateSummaryDisplay = () => {
+                let totalMinutes = 0;
+                selectedDays.forEach((shiftData) => {
+                    let d = typeof shiftData === 'object' ? shiftData : null;
+                    if (!d) { for (const g in SHIFT_CONFIG) if(SHIFT_CONFIG[g][shiftData]) d = {start:SHIFT_CONFIG[g][shiftData].s, end:SHIFT_CONFIG[g][shiftData].e}; }
+                    if (d && d.start && d.end) {
+                        const [sh,sm]=d.start.split(':').map(Number), [eh,em]=d.end.split(':').map(Number);
+                        if(isNaN(sh)||isNaN(sm)||isNaN(eh)||isNaN(em)) return;
+                        const sd=new Date(0); sd.setUTCHours(sh,sm); const ed=new Date(0); ed.setUTCHours(eh,em);
+                        if(ed<sd) ed.setDate(ed.getDate()+1);
+                        totalMinutes += (ed-sd)/(6e4);
+                    }
+                });
+                const totalHours = totalMinutes / 60, totalShifts = selectedDays.size;
+                DOM.summaryDisplay.textContent = totalShifts > 0 ? `| ${totalShifts} Dienste / ${totalHours.toFixed(2)} Stunden` : '';
+            };
+
+            const handleDayClick = (dateString) => {
+                const current = selectedDays.get(dateString);
+                if ((typeof current === 'object' && current.name === activeShift) || current === activeShift || activeShift === 'Frei') {
+                    selectedDays.delete(dateString);
+                } else if (activeShift === 'S') {
+                    selectedDays.set(dateString, { name: 'S', start: '08:00', end: '17:00', description: '' });
+                } else {
+                    selectedDays.set(dateString, activeShift);
+                }
+                selectedDays = new Map([...selectedDays.entries()].sort());
+                fullRender();
+                saveData();
+            };
+
+            const renderCalendar = () => {
+                const year = currentDate.getFullYear(), month = currentDate.getMonth();
+                DOM.monthYear.textContent = `${new Intl.DateTimeFormat('de-DE', { month: 'long' }).format(currentDate)} ${year}`;
+                DOM.calendarGrid.querySelectorAll('.day-container, .empty-day').forEach(el => el.remove());
+                const firstDay = new Date(year, month, 1), daysInMonth = new Date(year, month + 1, 0).getDate();
+                let startDay = firstDay.getDay(); if (startDay === 0) startDay = 6; else startDay -= 1;
+                for (let i = 0; i < startDay; i++) { const c=document.createElement('div'); c.className='empty-day'; DOM.calendarGrid.appendChild(c); }
+                const today = new Date().toISOString().slice(0, 10);
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+                    const container = document.createElement('div');
+                    container.className = 'day-container relative h-12 w-12 flex items-center justify-center cursor-pointer rounded-lg transition-colors group';
+                    container.onclick = () => handleDayClick(dateStr);
+                    
+                    const dayBg = document.createElement('div');
+                    dayBg.className = 'absolute inset-0 rounded-lg group-hover:bg-blue-200 transition-colors';
+                    
+                    if (dateStr === today) {
+                        dayBg.classList.add('border-2', 'border-blue-600');
+                    }
+                    
+                    const dayNumber = document.createElement('span');
+                    dayNumber.textContent = day;
+                    dayNumber.className = 'z-10';
+
+                    const shiftData = selectedDays.get(dateStr);
+                    const shiftName = typeof shiftData === 'object' ? shiftData.name : shiftData;
+                    
+                    if(shiftName) {
+                        let config = null;
+                        for(const g in SHIFT_CONFIG) if(SHIFT_CONFIG[g][shiftName]) config = SHIFT_CONFIG[g][shiftName];
+                        if(config) {
+                            const isNightShift = ['RDN1', 'RDN2', 'TRN'].includes(shiftName);
+                            if (isNightShift) {
+                                // Split background for night shifts (diagonal split)
+                                dayBg.style.background = `linear-gradient(to bottom right, ${config.c} 49.5%, #9ca3af 50.5%)`; // gray-400
+                            } else {
+                                // Solid background for other shifts
+                                dayBg.style.backgroundColor = config.c;
+                            }
+                            dayBg.style.opacity = '0.9';
+                            dayNumber.classList.add('text-white', 'font-bold');
+                        }
+                    }
+
+                    container.appendChild(dayBg);
+                    container.appendChild(dayNumber);
+                    DOM.calendarGrid.appendChild(container);
+                }
+            };
+
+            const renderShiftList = () => {
+                DOM.shiftList.innerHTML = '';
+                if (selectedDays.size === 0) { DOM.shiftList.appendChild(DOM.noDayMsg); return; }
+                selectedDays.forEach((shiftData, dateString) => {
+                    const formattedDate = new Intl.DateTimeFormat('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' }).format(new Date(dateString+'T00:00:00'));
+                    if (typeof shiftData === 'object' && shiftData.name === 'S') {
+                        const item = document.createElement('div');
+                        item.className = 'p-3 bg-orange-50 border border-orange-200 rounded-lg space-y-2';
+                        item.innerHTML = `<div class="flex justify-between items-center"><span class="font-bold text-orange-700">${formattedDate}: Sonderschicht (S)</span></div>
+                                          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 items-center">
+                                            <div class="flex items-center gap-1">
+                                                <input type="time" value="${shiftData.start}" class="w-full bg-white border border-gray-300 rounded-md p-1 text-sm">
+                                                <span class="text-gray-500">-</span>
+                                                <input type="time" value="${shiftData.end}" class="w-full bg-white border border-gray-300 rounded-md p-1 text-sm">
+                                            </div>
+                                            <input type="text" placeholder="Beschreibung (z.B. Event)" value="${shiftData.description}" class="sm:col-span-2 w-full bg-white border border-gray-300 rounded-md p-1 text-sm">
+                                          </div>`;
+                        const [startInput, endInput] = item.querySelectorAll('input[type="time"]');
+                        const descInput = item.querySelector('input[type="text"]');
+                        startInput.onchange = (e) => { shiftData.start = e.target.value; updateSummaryDisplay(); saveData(); };
+                        endInput.onchange = (e) => { shiftData.end = e.target.value; updateSummaryDisplay(); saveData(); };
+                        descInput.oninput = (e) => { shiftData.description = e.target.value; saveData(); };
+                        DOM.shiftList.appendChild(item);
+                    } else {
+                        const item = document.createElement('div');
+                        item.className = 'flex items-center justify-between p-2 bg-gray-50 rounded-md text-sm';
+                        item.textContent = `${formattedDate}: ${shiftData}`;
+                        DOM.shiftList.appendChild(item);
+                    }
+                });
+            };
+
+            const renderStatistics = () => {
+                DOM.statisticsList.innerHTML = '';
+                const shiftCounts = {};
+                if (selectedDays.size === 0) {
+                    DOM.statisticsList.appendChild(DOM.noStatsMsg);
+                    return;
+                }
+
+                for (const shiftData of selectedDays.values()) {
+                    const shiftName = typeof shiftData === 'object' ? shiftData.name : shiftData;
+                    shiftCounts[shiftName] = (shiftCounts[shiftName] || 0) + 1;
+                }
+
+                const sortedShifts = Object.entries(shiftCounts).sort((a, b) => b[1] - a[1]);
+
+                for (const [shiftName, count] of sortedShifts) {
+                    const statBox = document.createElement('div');
+                    statBox.className = 'bg-gray-100 p-3 rounded-lg text-center';
+                    
+                    let color = '#6b7280'; // Default gray
+                    for (const group in SHIFT_CONFIG) {
+                        if(SHIFT_CONFIG[group][shiftName]) {
+                            color = SHIFT_CONFIG[group][shiftName].c;
+                            break;
+                        }
+                    }
+
+                    statBox.innerHTML = `<div class="text-2xl font-bold" style="color: ${color};">${count}x</div>
+                                         <div class="text-sm text-gray-800 font-medium">${shiftName}</div>`;
+                    DOM.statisticsList.appendChild(statBox);
+                }
+            };
+            
+            const updateGenerateButtonState = () => { DOM.generateBtn.disabled = selectedDays.size === 0; };
+
+            const generateICSContent = () => {
+                let ics = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//DeinDienstplan//NONSGML v1.0//DE','CALSCALE:GREGORIAN'].join('\r\n');
+                const ts = new Date().toISOString().replace(/[-:]/g,'').split('.')[0]+'Z';
+                selectedDays.forEach((data, dateStr) => {
+                    let details=null, summary='';
+                    if(typeof data==='string'){summary=data;for(const g in SHIFT_CONFIG)if(SHIFT_CONFIG[g][data])details={start:SHIFT_CONFIG[g][data].s,end:SHIFT_CONFIG[g][data].e};}
+                    else if(typeof data==='object'){details=data;summary=data.description?`${data.name} (${data.description})`:data.name;}
+                    if(!details||!details.start||!details.end)return;
+                    const[y,m,d]=dateStr.split('-').map(Number),[sh,sm]=details.start.split(':').map(Number),[eh,em]=details.end.split(':').map(Number);
+                    if([sh,sm,eh,em].some(isNaN))return;
+                    let sd=new Date(Date.UTC(y,m-1,d,sh,sm)),ed=new Date(Date.UTC(y,m-1,d,eh,em));
+                    if(ed<sd)ed.setDate(ed.getDate()+1);
+                    const format=dt=>dt.toISOString().replace(/[-:]/g,'').split('.')[0]+'Z';
+                    const uid=`dienstplan-${dateStr}-${summary.replace(/\s/g,'')}@dein.dienstplan`;
+                    ics+=`\r\nBEGIN:VEVENT\r\nUID:${uid}\r\nDTSTAMP:${ts}\r\nDTSTART:${format(sd)}\r\nDTEND:${format(ed)}\r\nSUMMARY:${summary}\r\nLOCATION:Hunoldstraße 17a, A-6020 Innsbruck\r\nEND:VEVENT`;
+                });
+                return ics+'\r\nEND:VCALENDAR';
+            };
+
+            const downloadICS = () => {
+                const blob = new Blob([generateICSContent()], {type:'text/calendar;charset=utf-8'});
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `Dienstplan_${new Intl.DateTimeFormat('de-DE',{month:'long'}).format(currentDate)}_${currentDate.getFullYear()}.ics`;
+                document.body.appendChild(link); link.click(); document.body.removeChild(link);
+            };
+            
+            const fullRender = () => {
+                renderCalendar();
+                renderShiftList();
+                renderStatistics();
+                updateSummaryDisplay();
+                updateGenerateButtonState();
+            };
+
+            document.getElementById('prev-month').onclick = () => { currentDate.setMonth(currentDate.getMonth() - 1); loadData(); };
+            document.getElementById('next-month').onclick = () => { currentDate.setMonth(currentDate.getMonth() + 1); loadData(); };
+            DOM.generateBtn.onclick = downloadICS;
+            DOM.clearPlanBtn.onclick = clearData;
+
+            createShiftButtons();
+            loadData();
+        });
+    </script>
+</body>
+</html>
