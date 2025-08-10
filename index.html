@@ -62,58 +62,53 @@
         <!-- Main Content Grid -->
         <main class="grid grid-cols-1 lg:grid-cols-5 gap-6">
 
-            <!-- Left Column -->
-            <div class="lg:col-span-2 space-y-6">
-                <!-- Card: Shift Selection -->
-                <div class="card bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
-                    <div class="flex items-center justify-between">
-                         <h3 class="text-xl font-semibold text-gray-900 dark:text-white">1. Schicht auswählen</h3>
-                         <span id="save-indicator" class="text-sm text-green-500 opacity-0 font-medium">Gespeichert!</span>
-                    </div>
-                    <span id="summary-display" class="block text-sm text-gray-500 dark:text-gray-400 mb-4">Keine Dienste geplant</span>
-                    <div id="shift-selector-buttons" class="space-y-4 mt-3"></div>
+            <!-- Card: Calendar -->
+            <div class="lg:col-span-3 card bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white">1. Tage zuweisen</h3>
+                    <button id="clear-plan" class="text-sm text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-semibold">Plan zurücksetzen</button>
                 </div>
+                <div class="flex items-center justify-between mb-4">
+                    <button id="prev-month" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"><svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg></button>
+                    <h2 id="month-year" class="text-xl font-bold"></h2>
+                    <button id="next-month" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"><svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg></button>
+                </div>
+                <div id="calendar-grid" class="grid grid-cols-7 gap-1 text-center">
+                    <div class="font-semibold text-gray-500 dark:text-gray-400 text-sm">Mo</div><div class="font-semibold text-gray-500 dark:text-gray-400 text-sm">Di</div><div class="font-semibold text-gray-500 dark:text-gray-400 text-sm">Mi</div><div class="font-semibold text-gray-500 dark:text-gray-400 text-sm">Do</div><div class="font-semibold text-gray-500 dark:text-gray-400 text-sm">Fr</div><div class="font-semibold text-gray-500 dark:text-gray-400 text-sm">Sa</div><div class="font-semibold text-gray-500 dark:text-gray-400 text-sm">So</div>
+                </div>
+            </div>
+            
+            <!-- Card: Shift Selection -->
+            <div class="lg:col-span-2 card bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+                <div class="flex items-center justify-between">
+                     <h3 class="text-xl font-semibold text-gray-900 dark:text-white">2. Schicht auswählen</h3>
+                     <span id="save-indicator" class="text-sm text-green-500 opacity-0 font-medium">Gespeichert!</span>
+                </div>
+                <span id="summary-display" class="block text-sm text-gray-500 dark:text-gray-400 mb-4">Keine Dienste geplant</span>
+                <div id="shift-selector-buttons" class="space-y-4 mt-3"></div>
+            </div>
 
-                <!-- Card: Statistics -->
-                <div class="card bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
-                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Detaillierte Statistik</h3>
-                    <div id="statistics-list" class="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                        <p id="no-stats-msg" class="text-gray-500 dark:text-gray-400 col-span-full">Noch keine Dienste für eine Statistik vorhanden.</p>
-                    </div>
+            <!-- Card: Summary & Export -->
+            <div class="lg:col-span-3 card bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+                 <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">3. Zusammenfassung & Bearbeitung</h3>
+                 <div id="shift-list" class="space-y-3 max-h-80 overflow-y-auto pr-2">
+                     <p id="no-day-selected-msg" class="text-gray-500 dark:text-gray-400">Keine Tage zugewiesen.</p>
+                 </div>
+                 <div class="mt-6 border-t border-gray-200 dark:border-gray-700 pt-6">
+                    <button id="generate-ics" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-800 focus:ring-blue-500 transition-all disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed">
+                        ICS-Datei erstellen & herunterladen
+                    </button>
                 </div>
             </div>
 
-            <!-- Right Column -->
-            <div class="lg:col-span-3 space-y-6">
-                <!-- Card: Calendar -->
-                <div class="card bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-xl font-semibold text-gray-900 dark:text-white">2. Tage zuweisen</h3>
-                        <button id="clear-plan" class="text-sm text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-semibold">Plan zurücksetzen</button>
-                    </div>
-                    <div class="flex items-center justify-between mb-4">
-                        <button id="prev-month" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"><svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg></button>
-                        <h2 id="month-year" class="text-xl font-bold"></h2>
-                        <button id="next-month" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"><svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg></button>
-                    </div>
-                    <div id="calendar-grid" class="grid grid-cols-7 gap-1 text-center">
-                        <div class="font-semibold text-gray-500 dark:text-gray-400 text-sm">Mo</div><div class="font-semibold text-gray-500 dark:text-gray-400 text-sm">Di</div><div class="font-semibold text-gray-500 dark:text-gray-400 text-sm">Mi</div><div class="font-semibold text-gray-500 dark:text-gray-400 text-sm">Do</div><div class="font-semibold text-gray-500 dark:text-gray-400 text-sm">Fr</div><div class="font-semibold text-gray-500 dark:text-gray-400 text-sm">Sa</div><div class="font-semibold text-gray-500 dark:text-gray-400 text-sm">So</div>
-                    </div>
-                </div>
-                
-                <!-- Card: Summary & Export -->
-                <div class="card bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
-                     <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Zusammenfassung & Bearbeitung</h3>
-                     <div id="shift-list" class="space-y-3 max-h-80 overflow-y-auto pr-2">
-                         <p id="no-day-selected-msg" class="text-gray-500 dark:text-gray-400">Keine Tage zugewiesen.</p>
-                     </div>
-                     <div class="mt-6 border-t border-gray-200 dark:border-gray-700 pt-6">
-                        <button id="generate-ics" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-800 focus:ring-blue-500 transition-all disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed">
-                            ICS-Datei erstellen & herunterladen
-                        </button>
-                    </div>
+            <!-- Card: Statistics -->
+            <div class="lg:col-span-2 card bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">4. Detaillierte Statistik</h3>
+                <div id="statistics-list" class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    <p id="no-stats-msg" class="text-gray-500 dark:text-gray-400 col-span-full">Noch keine Dienste für eine Statistik vorhanden.</p>
                 </div>
             </div>
+
         </main>
     </div>
 
@@ -179,7 +174,6 @@
             };
 
             const clearData = () => {
-                // Using a simple confirm dialog. For a more styled approach, a custom modal would be needed.
                 if (window.confirm("Bist du sicher, dass du den gesamten Plan für diesen Monat löschen möchtest?")) {
                     localStorage.removeItem(getStorageKey());
                     selectedDays = new Map();
@@ -415,8 +409,14 @@
             const handleThemeToggle = () => {
                 const isDark = document.documentElement.classList.toggle('dark');
                 localStorage.setItem('theme', isDark ? 'dark' : 'light');
+                updateIconVisibility(isDark);
                 createShiftButtons();
                 setActiveShift(activeShift);
+            };
+
+            const updateIconVisibility = (isDark) => {
+                // Tailwind's dark:block and dark:hidden classes handle this automatically now.
+                // This function is kept in case direct style manipulation is needed elsewhere.
             };
 
             const fullRender = () => {
